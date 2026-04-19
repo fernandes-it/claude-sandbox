@@ -38,8 +38,9 @@ if [ "$CLAUDEVERSION" != "latest" ]; then
 fi
 
 # 3. GitHub MCP server binary
-mcp_arch="$(uname -m)"; case "$mcp_arch" in x86_64) mcp_arch=amd64 ;; aarch64|arm64) mcp_arch=arm64 ;; esac
-mcp_version="v0.5.0"
+# Upstream goreleaser uses x86_64/arm64 in the asset name.
+mcp_arch="$(uname -m)"; case "$mcp_arch" in aarch64) mcp_arch=arm64 ;; esac
+mcp_version="v1.0.0"
 curl -fsSL "https://github.com/github/github-mcp-server/releases/download/${mcp_version}/github-mcp-server_Linux_${mcp_arch}.tar.gz" \
   | tar -xz -C /usr/local/bin github-mcp-server
 chmod 755 /usr/local/bin/github-mcp-server
