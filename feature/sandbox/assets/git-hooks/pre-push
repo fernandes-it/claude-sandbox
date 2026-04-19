@@ -1,0 +1,3 @@
+#!/bin/sh
+echo "Push is disabled in the Claude sandbox. Run scripts/claude-handoff.sh on the host." >&2
+exit 1
