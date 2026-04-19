@@ -31,11 +31,21 @@ apt-get install -y --no-install-recommends \
   iptables ipset tmux curl ca-certificates python3 jq
 rm -rf /var/lib/apt/lists/*
 
-# 2. Claude CLI
+# 2. Claude CLI + wrapper relocation
+#
+# The official installer lands the binary at "$_HOME/.local/bin/claude". That
+# directory is on PATH via the user's .profile, which wins over anything we
+# prepend through containerEnv. Instead of fighting PATH ordering, move the
+# real binary to a sandbox-owned path and put our tmux wrapper in its place
+# at /usr/local/bin/claude (always on PATH, no shell-init override).
 sudo -u "$_USER" bash -c 'curl -fsSL https://claude.ai/install.sh -o /tmp/claude-install.sh && bash /tmp/claude-install.sh && rm /tmp/claude-install.sh'
 if [ "$CLAUDEVERSION" != "latest" ]; then
   echo "==> claudeVersion pinning is recorded ($CLAUDEVERSION) — upstream installer does not yet accept a version flag; revisit when it does." >&2
 fi
+install -d -o root -g root -m 0755 /usr/local/lib/claude-sandbox
+mv "$_HOME/.local/bin/claude" /usr/local/lib/claude-sandbox/claude-real
+chown root:root /usr/local/lib/claude-sandbox/claude-real
+chmod 0755 /usr/local/lib/claude-sandbox/claude-real
 
 # 3. GitHub MCP server binary
 # Upstream goreleaser uses x86_64/arm64 in the asset name.
@@ -82,10 +92,9 @@ echo "$_USER ALL=(root) NOPASSWD: /usr/local/bin/init-firewall.sh" \
   > /etc/sudoers.d/claude-sandbox-firewall
 chmod 0440 /etc/sudoers.d/claude-sandbox-firewall
 
-# 10. tmux claude wrapper on PATH (ahead of real claude)
-install -d -o root -g root -m 0755 /opt/sandbox-bin
+# 10. tmux claude wrapper as /usr/local/bin/claude (real binary moved aside in step 2)
 install -m 0755 -o root -g root \
-  "$FEATURE_DIR/assets/tmux/claude-wrapper.sh" /opt/sandbox-bin/claude
+  "$FEATURE_DIR/assets/tmux/claude-wrapper.sh" /usr/local/bin/claude
 
 # 11. Lifecycle hook (runtime step) — dispatched via devcontainer-feature.json postCreateCommand
 install -d -o root -g root -m 0755 /usr/local/share/claude-sandbox/lifecycle

@@ -35,8 +35,5 @@
   "installsAfter": [
     "ghcr.io/devcontainers/features/common-utils"
   ],
-  "postCreateCommand": "/usr/local/share/claude-sandbox/lifecycle/post-create.sh",
-  "containerEnv": {
-    "PATH": "/opt/sandbox-bin:${PATH}"
-  }
+  "postCreateCommand": "/usr/local/share/claude-sandbox/lifecycle/post-create.sh"
 }

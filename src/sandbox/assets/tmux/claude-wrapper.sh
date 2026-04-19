@@ -1,22 +1,13 @@
 #!/usr/bin/env bash
 # Tmux wrapper for the Claude CLI — manages a named, persistent session per task.
-# Installed as /opt/sandbox-bin/claude so it fronts the real CLI on PATH.
+# Installed as /usr/local/bin/claude by the Feature installer; the real binary
+# is moved to /usr/local/lib/claude-sandbox/claude-real so this wrapper can
+# front it without PATH-ordering ambiguity.
 set -euo pipefail
 
-# Find the real claude binary — must not be on /opt/sandbox-bin/, that's us.
-REAL_CLAUDE=""
-IFS=':' read -ra dirs <<<"$PATH"
-for dir in "${dirs[@]}"; do
-  [ "$dir" = "/opt/sandbox-bin" ] && continue
-  cand="$dir/claude"
-  if [ -x "$cand" ]; then
-    REAL_CLAUDE="$cand"
-    break
-  fi
-done
-
-if [ -z "$REAL_CLAUDE" ]; then
-  echo "claude-wrapper: cannot find the real claude CLI on PATH (excluding /opt/sandbox-bin)" >&2
+REAL_CLAUDE="/usr/local/lib/claude-sandbox/claude-real"
+if [ ! -x "$REAL_CLAUDE" ]; then
+  echo "claude-wrapper: real claude CLI missing at $REAL_CLAUDE" >&2
   exit 127
 fi
 

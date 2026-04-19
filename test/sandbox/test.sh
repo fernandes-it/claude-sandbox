@@ -28,9 +28,13 @@ echo "==> smoke test: credential helper"
 git config --global --get credential.helper | grep -q GH_TOKEN \
   || { echo "FAIL: credential helper not configured"; exit 1; }
 
-echo "==> smoke test: tmux wrapper on PATH ahead of real claude"
-[ "$(command -v claude)" = "/opt/sandbox-bin/claude" ] \
+echo "==> smoke test: tmux wrapper at /usr/local/bin/claude, real binary relocated"
+[ "$(command -v claude)" = "/usr/local/bin/claude" ] \
   || { echo "FAIL: wrapper not fronting real claude (got $(command -v claude))"; exit 1; }
+[ -x /usr/local/lib/claude-sandbox/claude-real ] \
+  || { echo "FAIL: real claude missing at /usr/local/lib/claude-sandbox/claude-real"; exit 1; }
+[ ! -e "$HOME/.local/bin/claude" ] \
+  || { echo "FAIL: ~/.local/bin/claude still present — will shadow the wrapper"; exit 1; }
 
 echo "==> smoke test: firewall script + sudoers"
 [ -x /usr/local/bin/init-firewall.sh ] || { echo "FAIL: firewall script missing"; exit 1; }
