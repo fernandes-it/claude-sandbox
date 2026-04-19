@@ -1,0 +1,42 @@
+{
+  "id": "sandbox",
+  "version": "1.0.0",
+  "name": "Claude Sandbox",
+  "description": "Devcontainer Feature: Claude Code CLI, read-only GitHub access via $GH_TOKEN, destructive-tool-use hook, egress firewall, read-only pre-push, optional dotfiles clone. See https://github.com/fernandes-it/claude-sandbox.",
+  "documentationURL": "https://github.com/fernandes-it/claude-sandbox",
+  "licenseURL": "https://github.com/fernandes-it/claude-sandbox/blob/main/LICENSE",
+  "options": {
+    "firewallExtraDomains": {
+      "type": "string",
+      "default": "",
+      "description": "Comma-separated list of extra domains to add to the egress allowlist. Example: 'proxy.golang.org,sum.golang.org'."
+    },
+    "additionalTools": {
+      "type": "string",
+      "default": "",
+      "description": "Comma-separated list of tools to install. Supported: goose, golangci-lint."
+    },
+    "claudeVersion": {
+      "type": "string",
+      "default": "latest",
+      "description": "Pin the Claude CLI version for reproducibility. 'latest' uses https://claude.ai/install.sh."
+    },
+    "workspaceFolder": {
+      "type": "string",
+      "default": "/workspaces",
+      "description": "Workspace folder inside the container. Must match the consumer's devcontainer.json workspaceFolder and the Coder module's project_workspace_folder if overridden."
+    },
+    "dotfilesUrl": {
+      "type": "string",
+      "default": "",
+      "description": "HTTPS URL to a dotfiles repo. Cloned + 'install.sh' executed at postCreate time using $GH_TOKEN. Empty = skip."
+    }
+  },
+  "installsAfter": [
+    "ghcr.io/devcontainers/features/common-utils"
+  ],
+  "postCreateCommand": "/usr/local/share/claude-sandbox/lifecycle/post-create.sh",
+  "containerEnv": {
+    "PATH": "/opt/sandbox-bin:${PATH}"
+  }
+}
