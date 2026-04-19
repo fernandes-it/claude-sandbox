@@ -1,0 +1,22 @@
+name: test
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  feature-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install devcontainer CLI
+        run: npm install -g @devcontainers/cli@latest
+      - name: Test Feature
+        run: |
+          devcontainer features test \
+            --features sandbox \
+            --base-image mcr.microsoft.com/devcontainers/base:bookworm \
+            --project-folder test/smoke \
+            --global-scenarios-only=false \
+            feature
