@@ -25,4 +25,4 @@ jobs:
           devcontainer features publish \
             --registry ghcr.io \
             --namespace "${{ github.repository_owner }}/claude-sandbox" \
-            feature
+            src

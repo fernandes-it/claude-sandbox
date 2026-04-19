@@ -17,6 +17,5 @@ jobs:
           devcontainer features test \
             --features sandbox \
             --base-image mcr.microsoft.com/devcontainers/base:bookworm \
-            --project-folder test/smoke \
-            --global-scenarios-only=false \
-            feature
+            --project-folder . \
+            --global-scenarios-only=false

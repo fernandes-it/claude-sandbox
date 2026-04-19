@@ -60,7 +60,7 @@ The companion dotfiles repo that this Feature clones must source `install.d/*.sh
 
 ## Publishing
 
-Tag `vX.Y.Z` → `publish-feature.yml` pushes `feature/sandbox` to `ghcr.io/fernandes-it/claude-sandbox/sandbox:X.Y.Z` and `:X` (major rolling).
+Tag `vX.Y.Z` → `publish-feature.yml` pushes `src/sandbox` to `ghcr.io/fernandes-it/claude-sandbox/sandbox:X.Y.Z` and `:X` (major rolling).
 
 ## License
 
