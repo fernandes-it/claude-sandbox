@@ -30,7 +30,7 @@ rm -rf "$tmp"
 
 echo "==> scenario: dispatcher dispatches to lefthook with passing config"
 tmp=$(mktemp -d)
-( cd "$tmp" && git init -q && cat >lefthook.yml <<'EOF'
+( cd "$tmp" && git init -q && touch a && git add a && cat >lefthook.yml <<'EOF'
 pre-commit:
   commands:
     ok:
@@ -43,7 +43,7 @@ rm -rf "$tmp"
 
 echo "==> scenario: dispatcher fails closed on failing config"
 tmp=$(mktemp -d)
-( cd "$tmp" && git init -q && cat >lefthook.yml <<'EOF'
+( cd "$tmp" && git init -q && touch a && git add a && cat >lefthook.yml <<'EOF'
 pre-commit:
   commands:
     fail:
@@ -70,7 +70,7 @@ rm -rf "$tmp"
 
 echo "==> scenario: dispatcher fails when binary missing but config present"
 tmp=$(mktemp -d)
-( cd "$tmp" && git init -q && cat >lefthook.yml <<'EOF'
+( cd "$tmp" && git init -q && touch a && git add a && cat >lefthook.yml <<'EOF'
 pre-commit:
   commands:
     ok:
