@@ -1,6 +1,6 @@
 {
   "id": "sandbox",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "name": "Claude Sandbox",
   "description": "Devcontainer Feature: Claude Code CLI, read-only GitHub access via $GH_TOKEN, destructive-tool-use hook, egress firewall, read-only pre-push, optional dotfiles clone. See https://github.com/fernandes-it/claude-sandbox.",
   "documentationURL": "https://github.com/fernandes-it/claude-sandbox",
