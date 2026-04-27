@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `lefthookVersion` Feature option: when set, installs lefthook and root-owned `pre-commit`/`commit-msg` dispatchers in `/etc/git-hooks-readonly/` that run project `lefthook.yml` checks. `pre-push` remains an unbypassable Feature-owned hook.
+
 ## [1.0.0] - TBD
 
 ### Added
