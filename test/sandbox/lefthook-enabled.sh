@@ -55,4 +55,36 @@ if ( cd "$tmp" && /etc/git-hooks-readonly/pre-commit ); then
 fi
 rm -rf "$tmp"
 
+echo "==> scenario: commit-msg dispatcher dispatches to lefthook with passing config"
+tmp=$(mktemp -d)
+( cd "$tmp" && git init -q && cat >lefthook.yml <<'EOF'
+commit-msg:
+  commands:
+    ok:
+      run: "true"
+EOF
+)
+( cd "$tmp" && /etc/git-hooks-readonly/commit-msg /dev/null ) \
+  || { echo "FAIL: commit-msg dispatcher non-zero with passing lefthook.yml"; rm -rf "$tmp"; exit 1; }
+rm -rf "$tmp"
+
+echo "==> scenario: dispatcher fails when binary missing but config present"
+tmp=$(mktemp -d)
+( cd "$tmp" && git init -q && cat >lefthook.yml <<'EOF'
+pre-commit:
+  commands:
+    ok:
+      run: "true"
+EOF
+)
+# Temporarily hide the lefthook binary
+mv /usr/local/bin/lefthook /usr/local/bin/lefthook.bak
+err_out=$(cd "$tmp" && /etc/git-hooks-readonly/pre-commit 2>&1; echo "exit=$?")
+mv /usr/local/bin/lefthook.bak /usr/local/bin/lefthook
+case "$err_out" in
+  *"claude-sandbox:"*"exit=1"*) ;;
+  *) echo "FAIL: expected claude-sandbox: message and exit=1, got: $err_out"; rm -rf "$tmp"; exit 1 ;;
+esac
+rm -rf "$tmp"
+
 echo "All lefthook-enabled scenario tests passed."
