@@ -32,7 +32,7 @@ Set `lefthookVersion` in your `devcontainer.json` to install `lefthook` plus roo
 }
 ```
 
-Drop a `lefthook.yml` at the project root and it just works. **Do not run `lefthook install`** — the Feature sets `core.hooksPath` globally, which makes `lefthook install`'s per-repo output a no-op. The dispatchers shipped by the Feature handle that for you.
+Drop a `lefthook.yml` at the project root and it just works. **Do not run `lefthook install`** — the Feature sets `core.hooksPath` to a root-owned directory, so git ignores `.git/hooks/` entirely. Any hooks `lefthook install` writes there are never called. The dispatchers shipped by the Feature handle the hook wiring for you.
 
 Only `pre-commit` and `commit-msg` are wired. `pre-push` is owned by the Feature and unconditionally blocks pushes; lefthook does not override it.
 
