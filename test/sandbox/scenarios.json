@@ -1,0 +1,10 @@
+{
+  "lefthook-enabled": {
+    "image": "mcr.microsoft.com/devcontainers/base:bookworm",
+    "features": {
+      "sandbox": {
+        "lefthookVersion": "latest"
+      }
+    }
+  }
+}

@@ -1,0 +1,18 @@
+#!/bin/sh
+# claude-sandbox dispatcher — see pre-commit in this directory for
+# the full rationale. This file is plumbing, not a security control.
+set -e
+
+if ! root=$(git rev-parse --show-toplevel 2>/dev/null); then
+  exit 0
+fi
+
+if [ -f "$root/lefthook.yml" ] || [ -f "$root/.lefthook.yml" ]; then
+  if ! command -v lefthook >/dev/null 2>&1; then
+    echo "claude-sandbox: lefthook config present but lefthook binary missing" >&2
+    exit 1
+  fi
+  exec lefthook run commit-msg "$@"
+fi
+
+exit 0

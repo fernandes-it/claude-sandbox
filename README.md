@@ -18,6 +18,24 @@ A reusable Dev Containers **Feature** + Coder Terraform module + host-side scrip
 
 3. **Script templates** (`./scripts`): `devpod-up.sh` and `claude-handoff.sh`, copied into consumer projects and self-updating from released tags.
 
+## Lefthook integration (optional)
+
+Set `lefthookVersion` in your `devcontainer.json` to install `lefthook` plus root-owned `pre-commit` and `commit-msg` dispatchers next to the unbypassable `pre-push` hook:
+
+```jsonc
+{
+  "features": {
+    "ghcr.io/fernandes-it/claude-sandbox/sandbox:1": {
+      "lefthookVersion": "latest"
+    }
+  }
+}
+```
+
+Drop a `lefthook.yml` at the project root and it just works. **Do not run `lefthook install`** — the Feature sets `core.hooksPath` to a root-owned directory, so git ignores `.git/hooks/` entirely. Any hooks `lefthook install` writes there are never called. The dispatchers shipped by the Feature handle the hook wiring for you.
+
+Only `pre-commit` and `commit-msg` are wired. `pre-push` is owned by the Feature and unconditionally blocks pushes; lefthook does not override it.
+
 ## Threat model (what this isn't)
 
 No kernel isolation, no detection evasion, no multi-tenant RBAC. Threat model is: _autonomous agent with full Bash inside a container; must not be able to push, open PRs, or leak credentials._ Defense = container isolation + firewall + credential absence + approval gate.
