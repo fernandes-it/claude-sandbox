@@ -120,8 +120,8 @@ if [ -n "$LEFTHOOKVERSION" ]; then
     lh_resolved="${LEFTHOOKVERSION#v}"
   fi
   echo "==> claude-sandbox: installing lefthook ${lh_resolved} (${lh_arch})"
-  curl -fsSL "https://github.com/evilmartians/lefthook/releases/download/v${lh_resolved}/lefthook_${lh_resolved}_Linux_${lh_arch}.tar.gz" \
-    | tar -xz -C /usr/local/bin lefthook
+  curl -fsSL "https://github.com/evilmartians/lefthook/releases/download/v${lh_resolved}/lefthook_${lh_resolved}_Linux_${lh_arch}" \
+    -o /usr/local/bin/lefthook
   chmod 0755 /usr/local/bin/lefthook
   chown root:root /usr/local/bin/lefthook
 
