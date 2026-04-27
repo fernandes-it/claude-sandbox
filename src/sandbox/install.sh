@@ -104,13 +104,17 @@ install -m 0755 -o root -g root \
 
 # 12. lefthook (optional) — install binary + dispatchers if version requested
 if [ -n "$LEFTHOOKVERSION" ]; then
-  lh_arch="$(uname -m)"; case "$lh_arch" in aarch64) lh_arch=arm64 ;; x86_64) lh_arch=x86_64 ;; esac
+  lh_arch="$(uname -m)"
+  case "$lh_arch" in
+    aarch64) lh_arch=arm64 ;;
+    x86_64)  lh_arch=x86_64 ;;
+    *) echo "claude-sandbox: lefthook: unsupported architecture $lh_arch" >&2; exit 1 ;;
+  esac
   if [ "$LEFTHOOKVERSION" = "latest" ]; then
     # Resolve "latest" by following the GitHub releases redirect
-    lh_resolved=$(curl -fsSI "https://github.com/evilmartians/lefthook/releases/latest" \
-      | awk -F'/' 'tolower($1) ~ /^location:/ {sub(/\r$/, "", $NF); print $NF}' \
-      | tail -n1)
-    lh_resolved="${lh_resolved#v}"
+    lh_resolved=$(curl -fsSL -o /dev/null -w '%{url_effective}' \
+      "https://github.com/evilmartians/lefthook/releases/latest" \
+      | awk -F'/tag/v' '{print $2}')
     : "${lh_resolved:?claude-sandbox: failed to resolve lefthook latest tag}"
   else
     lh_resolved="${LEFTHOOKVERSION#v}"
