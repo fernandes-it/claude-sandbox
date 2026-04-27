@@ -1,0 +1,24 @@
+#!/bin/sh
+# claude-sandbox dispatcher — owned by the Feature, lives in
+# /etc/git-hooks-readonly/ alongside the unbypassable pre-push hook.
+#
+# IMPORTANT: pre-push is a security control. This file is NOT.
+# It is plumbing to make project-level lefthook configs work despite
+# the global core.hooksPath override. Do not add policy logic here.
+#
+# Behaviour: if the repo has a lefthook.yml, dispatch to lefthook.
+# Otherwise exit silently. Never run `lefthook install` per repo —
+# core.hooksPath would override its output anyway.
+set -e
+
+root=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
+
+if [ -f "$root/lefthook.yml" ] || [ -f "$root/.lefthook.yml" ]; then
+  if ! command -v lefthook >/dev/null 2>&1; then
+    echo "claude-sandbox: lefthook config present but lefthook binary missing" >&2
+    exit 1
+  fi
+  exec lefthook run pre-commit "$@"
+fi
+
+exit 0
