@@ -30,6 +30,11 @@
       "type": "string",
       "default": "",
       "description": "HTTPS URL to a dotfiles repo. Cloned + 'install.sh' executed at postCreate time using $GH_TOKEN. Empty = skip."
+    },
+    "lefthookVersion": {
+      "type": "string",
+      "default": "",
+      "description": "Install lefthook and wire pre-commit/commit-msg dispatchers into the global hooks dir. Empty = disabled. Use a pinned version (e.g. '1.7.22') or 'latest'."
     }
   },
   "installsAfter": [
