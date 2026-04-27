@@ -73,72 +73,132 @@ else
   handoff_dir="$tmp/.claude/handoffs"
 fi
 
-# Pick the most recent unprocessed manifest (filenames are ISO-timestamp + slug, no special chars)
-# shellcheck disable=SC2012
-manifest="$(ls -1t "$handoff_dir"/*.json 2>/dev/null | head -1 || true)"
-[ -z "$manifest" ] && { echo "no manifests in $handoff_dir" >&2; exit 1; }
+# Collect all unprocessed manifests, sorted oldest first by filename
+# (filenames are ISO-date + slug, so a lexical sort is chronological).
+shopt -s nullglob
+manifests=( "$handoff_dir"/*.json )
+shopt -u nullglob
+[ ${#manifests[@]} -eq 0 ] && { echo "no manifests in $handoff_dir" >&2; exit 1; }
+sorted_manifests=()
+while IFS= read -r line; do
+  sorted_manifests+=( "$line" )
+done < <(printf '%s\n' "${manifests[@]}" | sort)
+manifests=( "${sorted_manifests[@]}" )
+unset sorted_manifests
 
-# Validate schema
-version=$(jq -r '.version' "$manifest")
-branch=$(jq -r '.branch' "$manifest")
-base=$(jq -r '.base' "$manifest")
-action=$(jq -r '.action' "$manifest")
-title=$(jq -r '.title' "$manifest")
-body=$(jq -r '.body' "$manifest")
-draft=$(jq -r '.draft // true' "$manifest")
-labels=$(jq -r '.labels // [] | join(",")' "$manifest")
+# Push a branch to origin only if local exists and origin is missing it or behind.
+# Used for stacked-PR base branches so 'gh pr create' doesn't see a missing base ref.
+ensure_pushed() {
+  local b="$1"
+  if ! git rev-parse --verify "$b" >/dev/null 2>&1; then
+    echo "branch '$b' does not exist locally — cannot push" >&2; return 1
+  fi
+  if git rev-parse --verify "origin/$b" >/dev/null 2>&1 \
+     && [ "$(git rev-parse "$b")" = "$(git rev-parse "origin/$b")" ]; then
+    return 0
+  fi
+  git push origin "$b":"refs/heads/$b"
+}
 
-[ "$version" != "1" ]      && { echo "unsupported manifest version: $version" >&2; exit 1; }
-[ -z "$branch" ]           && { echo "manifest missing .branch" >&2; exit 1; }
-[ -z "$base" ]             && { echo "manifest missing .base"   >&2; exit 1; }
+process_manifest() {
+  local manifest="$1"
+  local version branch base action title body draft labels
 
-# Enforce conventional-commits branch prefix for 'open_pr' actions
-if [ "$action" = "open_pr" ] && ! [[ "$branch" =~ ^(feat|fix|chore|docs|refactor|test|perf|ci|build|style)/ ]]; then
-  echo "branch '$branch' does not use a conventional prefix" >&2; exit 1
-fi
+  version=$(jq -r '.version'                "$manifest")
+  branch=$(jq  -r '.branch'                 "$manifest")
+  base=$(jq    -r '.base'                   "$manifest")
+  action=$(jq  -r '.action'                 "$manifest")
+  title=$(jq   -r '.title'                  "$manifest")
+  body=$(jq    -r '.body'                   "$manifest")
+  draft=$(jq   -r '.draft // true'          "$manifest")
+  labels=$(jq  -r '.labels // [] | join(",")' "$manifest")
 
-if ! git rev-parse --verify "$branch" >/dev/null 2>&1; then
-  echo "branch '$branch' does not exist locally" >&2; exit 1
-fi
+  [ "$version" != "1" ] && { echo "unsupported manifest version: $version" >&2; return 1; }
+  [ -z "$branch" ]      && { echo "manifest missing .branch" >&2; return 1; }
+  [ -z "$base" ]        && { echo "manifest missing .base"   >&2; return 1; }
 
+  if [ "$action" = "open_pr" ] && ! [[ "$branch" =~ ^(feat|fix|chore|docs|refactor|test|perf|ci|build|style)/ ]]; then
+    echo "branch '$branch' does not use a conventional prefix" >&2; return 1
+  fi
+
+  if ! git rev-parse --verify "$branch" >/dev/null 2>&1; then
+    echo "branch '$branch' does not exist locally" >&2; return 1
+  fi
+
+  echo ""
+  echo "=========================================="
+  echo "Manifest: $(basename "$manifest")"
+  echo "=========================================="
+  echo "=== commits about to push ($base..$branch) ==="
+  git log --oneline "$base..$branch"
+  echo ""
+  echo "=== diffstat vs $base ==="
+  git diff --stat "$base..$branch"
+  echo ""
+  echo "=== manifest ==="
+  echo "action:  $action"
+  echo "title:   $title"
+  echo "labels:  $labels"
+  echo "draft:   $draft"
+  echo ""
+  echo "body:"
+  printf '%s\n' "$body" | sed 's/^/  /'
+
+  echo ""
+  read -rp "Proceed with $action on '$branch'? [y/N/q to quit] " yn
+  case "$yn" in
+    [Yy]*) ;;
+    [Qq]*) echo "quitting"; exit 0 ;;
+    *)     echo "skipped (manifest left in place)"; return 0 ;;
+  esac
+
+  case "$action" in
+    push_only)
+      git push -u origin "$branch":"refs/heads/$branch"
+      ;;
+    open_pr)
+      # For stacked PRs, ensure the base branch is on origin first — otherwise
+      # 'gh pr create' fails with "Base ref must be a branch / Base sha can't be blank".
+      if [ "$base" != "main" ] && [ "$base" != "master" ]; then
+        ensure_pushed "$base"
+      fi
+      git push -u origin "$branch":"refs/heads/$branch"
+
+      local existing
+      existing=$(gh pr list --head "$branch" --state open \
+                   --json number --jq '.[0].number' 2>/dev/null || true)
+      if [ -n "$existing" ] && [ "$existing" != "null" ]; then
+        echo "PR #$existing is already open for '$branch'."
+        read -rp "Update title/body/base on PR #$existing? [y/N] " up
+        if [[ "$up" =~ ^[Yy]$ ]]; then
+          gh pr edit "$existing" --title "$title" --body "$body" --base "$base"
+        else
+          echo "leaving PR #$existing unchanged"
+        fi
+      else
+        local gh_args=( --head "$branch" --base "$base" --title "$title" --body "$body" )
+        [ "$draft" = "true" ] && gh_args+=( --draft )
+        [ -n "$labels" ]      && gh_args+=( --label "$labels" )
+        gh pr create "${gh_args[@]}"
+      fi
+      ;;
+    *)
+      echo "action '$action' not implemented in v1" >&2; return 1
+      ;;
+  esac
+
+  local processed_dir
+  processed_dir="$(dirname "$manifest")/processed"
+  mkdir -p "$processed_dir"
+  mv "$manifest" "$processed_dir/"
+  echo "Manifest moved to $processed_dir/$(basename "$manifest")"
+}
+
+echo "Found ${#manifests[@]} manifest(s) in $handoff_dir."
+for manifest in "${manifests[@]}"; do
+  if ! process_manifest "$manifest"; then
+    echo "manifest $(basename "$manifest") failed — moving on" >&2
+  fi
+done
 echo ""
-echo "=== commits about to push ($base..$branch) ==="
-git log --oneline "$base..$branch"
-echo ""
-echo "=== diffstat vs $base ==="
-git diff --stat "$base..$branch"
-echo ""
-echo "=== manifest ==="
-echo "action:  $action"
-echo "title:   $title"
-echo "labels:  $labels"
-echo "draft:   $draft"
-echo ""
-echo "body:"
-printf '%s\n' "$body" | sed 's/^/  /'
-
-echo ""
-read -rp "Proceed with $action on '$branch'? [y/N] " yn
-[[ "$yn" =~ ^[Yy]$ ]] || { echo "aborted"; exit 0; }
-
-case "$action" in
-  push_only)
-    git push -u origin "$branch"
-    ;;
-  open_pr)
-    git push -u origin "$branch"
-    gh_args=( --base "$base" --title "$title" --body "$body" )
-    [ "$draft" = "true" ] && gh_args+=( --draft )
-    [ -n "$labels" ] && gh_args+=( --label "$labels" )
-    gh pr create "${gh_args[@]}"
-    ;;
-  *)
-    echo "action '$action' not implemented in v1" >&2; exit 1
-    ;;
-esac
-
-# Move manifest into processed/
-processed_dir="$(dirname "$manifest")/processed"
-mkdir -p "$processed_dir"
-mv "$manifest" "$processed_dir/"
-echo "Done. Manifest moved to $processed_dir/$(basename "$manifest")"
+echo "Done."
