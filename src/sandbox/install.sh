@@ -102,7 +102,35 @@ install -d -o root -g root -m 0755 /usr/local/share/claude-sandbox/lifecycle
 install -m 0755 -o root -g root \
   "$FEATURE_DIR/lifecycle/post-create.sh" /usr/local/share/claude-sandbox/lifecycle/post-create.sh
 
-# 12. additionalTools
+# 12. lefthook (optional) — install binary + dispatchers if version requested
+if [ -n "$LEFTHOOKVERSION" ]; then
+  lh_arch="$(uname -m)"; case "$lh_arch" in aarch64) lh_arch=arm64 ;; x86_64) lh_arch=x86_64 ;; esac
+  if [ "$LEFTHOOKVERSION" = "latest" ]; then
+    # Resolve "latest" by following the GitHub releases redirect
+    lh_resolved=$(curl -fsSI "https://github.com/evilmartians/lefthook/releases/latest" \
+      | awk -F'/' 'tolower($1) ~ /^location:/ {sub(/\r$/, "", $NF); print $NF}' \
+      | tail -n1)
+    lh_resolved="${lh_resolved#v}"
+    : "${lh_resolved:?claude-sandbox: failed to resolve lefthook latest tag}"
+  else
+    lh_resolved="${LEFTHOOKVERSION#v}"
+  fi
+  echo "==> claude-sandbox: installing lefthook ${lh_resolved} (${lh_arch})"
+  curl -fsSL "https://github.com/evilmartians/lefthook/releases/download/v${lh_resolved}/lefthook_${lh_resolved}_Linux_${lh_arch}.tar.gz" \
+    | tar -xz -C /usr/local/bin lefthook
+  chmod 0755 /usr/local/bin/lefthook
+  chown root:root /usr/local/bin/lefthook
+
+  # Dispatchers — siblings of the existing pre-push hook
+  install -m 0555 -o root -g root \
+    "$FEATURE_DIR/assets/git-hooks/pre-commit" \
+    /etc/git-hooks-readonly/pre-commit
+  install -m 0555 -o root -g root \
+    "$FEATURE_DIR/assets/git-hooks/commit-msg" \
+    /etc/git-hooks-readonly/commit-msg
+fi
+
+# 13. additionalTools
 if [ -n "$ADDITIONALTOOLS" ]; then
   IFS=',' read -ra tools <<<"$ADDITIONALTOOLS"
   for t in "${tools[@]}"; do
@@ -118,7 +146,7 @@ if [ -n "$ADDITIONALTOOLS" ]; then
   done
 fi
 
-# 13. Record workspaceFolder and firewallExtraDomains so the lifecycle script can read them
+# 14. Record workspaceFolder and firewallExtraDomains so the lifecycle script can read them
 cat >/etc/claude-sandbox/env <<EOF
 WORKSPACEFOLDER=$WORKSPACEFOLDER
 FIREWALL_EXTRA_DOMAINS=$FIREWALLEXTRADOMAINS
