@@ -21,10 +21,10 @@ done
 echo "==> scenario: dispatcher silent in repo without lefthook.yml"
 tmp=$(mktemp -d)
 ( cd "$tmp" && git init -q )
-out=$(/etc/git-hooks-readonly/pre-commit 2>&1; echo "exit=$?")
+out=$(cd "$tmp" && /etc/git-hooks-readonly/pre-commit 2>&1; echo "exit=$?")
 case "$out" in
   *"exit=0"*) ;;
-  *) echo "FAIL: dispatcher non-zero in repo without lefthook.yml: $out"; exit 1 ;;
+  *) echo "FAIL: dispatcher non-zero in repo without lefthook.yml: $out"; rm -rf "$tmp"; exit 1 ;;
 esac
 rm -rf "$tmp"
 
