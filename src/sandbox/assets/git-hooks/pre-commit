@@ -11,7 +11,9 @@
 # core.hooksPath would override its output anyway.
 set -e
 
-root=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
+if ! root=$(git rev-parse --show-toplevel 2>/dev/null); then
+  exit 0
+fi
 
 if [ -f "$root/lefthook.yml" ] || [ -f "$root/.lefthook.yml" ]; then
   if ! command -v lefthook >/dev/null 2>&1; then
