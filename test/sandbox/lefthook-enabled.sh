@@ -79,8 +79,10 @@ EOF
 )
 # Temporarily hide the lefthook binary
 mv /usr/local/bin/lefthook /usr/local/bin/lefthook.bak
+trap 'mv /usr/local/bin/lefthook.bak /usr/local/bin/lefthook 2>/dev/null; rm -rf "$tmp"' EXIT
 err_out=$(cd "$tmp" && /etc/git-hooks-readonly/pre-commit 2>&1; echo "exit=$?")
 mv /usr/local/bin/lefthook.bak /usr/local/bin/lefthook
+trap - EXIT
 case "$err_out" in
   *"claude-sandbox:"*"exit=1"*) ;;
   *) echo "FAIL: expected claude-sandbox: message and exit=1, got: $err_out"; rm -rf "$tmp"; exit 1 ;;
