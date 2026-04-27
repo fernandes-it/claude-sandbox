@@ -44,4 +44,12 @@ sudo -n /usr/local/bin/init-firewall.sh </dev/null >/dev/null 2>&1 \
 echo "==> smoke test: github-mcp-server binary"
 [ -x /usr/local/bin/github-mcp-server ] || { echo "FAIL: github-mcp-server missing"; exit 1; }
 
+echo "==> smoke test: lefthook disabled by default"
+[ ! -e /usr/local/bin/lefthook ] \
+  || { echo "FAIL: lefthook installed despite empty lefthookVersion"; exit 1; }
+[ ! -e /etc/git-hooks-readonly/pre-commit ] \
+  || { echo "FAIL: pre-commit dispatcher installed despite empty lefthookVersion"; exit 1; }
+[ ! -e /etc/git-hooks-readonly/commit-msg ] \
+  || { echo "FAIL: commit-msg dispatcher installed despite empty lefthookVersion"; exit 1; }
+
 echo "All smoke tests passed."
